@@ -1,0 +1,1384 @@
+/*************************************************************************************************************
+3.8 杂志订阅管理系统（难度系数：3级）
+【任务描述】
+	设计并实现一个杂志订阅管理程序。
+【功能需求】
+（1）管理员功能
+ 	杂志基本信息管理：添加，查询，修改，删除，存盘，浏览等。
+ 	客户信息管理：添加，查询，修改，删除，存盘。
+ 	杂志订阅：客户杂志订购信息录入，修改；【客户号，杂志号，数量】
+ 	能浏览全部杂志的基本信息，还可以按杂志名称浏览杂志信息。
+ 	统计功能：统计每种杂志的订阅数量，并分别显示订阅数前三名和最后三名的杂志信息。
+ 	可按杂志名称，用户，杂志价格范围等值，进行信息查询和显示。
+（2）用户功能
+可查询杂志的信息，如按名称、按价格查询等。
+（3）设计提示
+    管理员通过密码登录，进行信息的管理。普通用户无需登录，只具有查询的权限。
+********************************************************************************************************/
+#include<stdio.h>
+#include<string.h>
+#include<malloc.h>
+#include<stdlib.h>
+#include<windows.h>
+void windows();
+struct goods
+{
+	char mark[5];//客户名
+	char num[5];//杂志号
+	int book;//订购数量
+	struct goods *next;
+};
+struct user
+{
+	char name[10];//姓名
+	char gender[5];//性别
+	char mark[5];//客户号
+	struct user *next;
+};
+
+struct magazine
+{
+	char na[10];//杂志名
+	float price;//价格
+	int count;//数量
+	char num[5];//杂志号
+	int sum;//订购数量
+	struct magazine *next;
+};
+
+void Art()//界面
+{
+	system("color 3E");
+	printf("\t\t☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆\n");
+	printf(" \n");
+	printf("\t\t☆	 @     @    @@@@      @@@     @@@@     @@@@@@     @     @@@     @@@@      ☆  \n");  
+	printf("\t\t☆	 @@   @@   @    @    @   @   @    @        @           @   @   @    @     ☆\n");
+	printf("\t\t☆ 	 @ @ @ @   @    @     @@@@   @    @       @       @    @   @   @ @@ @     ☆ \n");
+	printf("\t\t☆       @  @  @   @    @@@      @   @    @@@    @        @    @   @   @          ☆ \n");
+	printf("\t\t☆	 @     @    @@@       @@@@    @@@       @@@@@@    @    @   @    @@@@      ☆\n\n");
+	printf("\t\t☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆\n\n");
+    printf("\t\t*****************************************************************************\n  ");
+    printf("\t\t *****************************************************************************\n");
+	printf("\t\t #################      欢迎使用杂志订阅管理系统       #######################\n");
+	printf("\t\t *****************************************************************************\n");
+	printf("\t\t *****************************************************************************\n");
+	printf("\n\t\t &&&&&&&&&&&&&&&&&管理员请输入------ A &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+	printf("\n\t\t $$$$$$$$$$$$$$$$$普通用户请输入------ B $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+	printf("请输入：");
+
+}
+void freeingmagazine(struct magazine *head)//free函数
+{
+	struct magazine * node=NULL;
+	while(head!=NULL)
+	{
+		node=head->next;
+		free(head);
+		head=node;
+	}
+}
+
+
+/************************************************************************************************************
+*********************杂志信息管理****************************************************************************
+**********************************************************************************************************/
+int inlitmagazine(struct magazine *node)
+{
+	printf("请输入所添加杂志名称：");
+	fflush(stdin);
+	scanf("%s",node->na);
+	printf("请输入所添加杂志号：");
+	fflush(stdin);
+	scanf("%s",node->num);
+	printf("请输入所添加杂志价格：");
+	scanf("%f",&node->price);
+	printf("请输入所添加杂志的数量:");
+	scanf("%d",&node->count);
+	return 0;
+}
+
+struct magazine *linkmagazine(int n)
+{
+	int i=1;
+	struct magazine *head=NULL;
+	struct magazine *node=NULL;
+	while(i<=n)
+	{
+		node=(struct magazine*)malloc(sizeof(struct magazine));
+		if(node==NULL)
+		{
+			return NULL;
+		}
+		memset(node,0,sizeof(struct magazine));
+		inlitmagazine(node);
+		node->next=head;
+		head=node;
+		i++;
+	}
+	return head;
+}
+
+int Fwritemagazine(struct magazine *head)//存盘
+{
+	FILE *fp;	
+	if((fp=fopen("magazine.txt","w"))==NULL)
+	{
+		printf("open file faild");
+		return 1;
+	}
+	while(head!=NULL)
+	{
+		fwrite(head,sizeof(struct magazine),1,fp);
+		head=head->next;
+	}
+	printf("保存成功 \n");
+	fclose(fp);
+	return 0;
+}
+
+struct magazine *Freadmagazine()//从文件中读取杂志信息
+{
+	
+ struct magazine *head=NULL;
+ struct magazine *node=NULL;
+ FILE *fp;
+ if((fp=fopen("magazine.txt","r"))==NULL)
+ {
+	printf("open file faild");
+	return NULL;
+ }
+ while(!feof(fp))
+ {
+	node=(struct magazine *)malloc(sizeof(struct magazine));
+	if(node==NULL)
+	{
+      return NULL;
+	}
+	memset(node,0,sizeof(struct magazine));
+	fread(node,1,sizeof(struct magazine),fp);
+	node->next=head;
+	head=node;
+ }
+ fclose(fp);
+ return head;
+}
+
+int scanmagazine(struct magazine *head)//查找
+{
+	    printf("\t\t███████████████████████████\n");
+		printf("\t\t█ 1.按杂志名称查询                                 █\n");
+		printf("\t\t█ 2.按杂志价格查询                                 █\n");
+		printf("\t\t█ 3.按杂志编号查询                                 █\n");
+		printf("\t\t█ 4.返回主界面                                     █\n");
+		printf("\t\t███████████████████████████\n");
+	
+	int n,flag=0;
+	scanf("%d",&n);
+	switch(n)
+	{
+	case 1:
+		
+		{
+			char a[10];
+			printf("输入你要查询的杂志名：");
+			memset(a,0,10);
+			fflush(stdin);
+			scanf("%s",a);
+			printf("\n");
+			while(head!=NULL)
+			{
+
+		     	if(strcmp(head->na,a)==0)
+				{
+					printf("杂志名\t价格\t库存\t杂志编号\n");
+					printf("_________________________________________ \n");
+					printf("   %s        | %f    |  %d      |    %s   \n"   ,head->na,head->price,head->count,head->num);
+				
+					flag=1;
+				}
+				head=head->next;
+			}	
+			printf("----------------------------------------- \n");
+			if(flag==0)
+			{
+				printf("****************************************\n");
+				printf("########################################\n");
+				printf("\n\n找不到你要找的杂志,书库里可能无你要查找的书\n\n\n");
+				printf("########################################\n");
+				printf("****************************************\n");
+			}
+		};break;
+	case 2:
+		{
+			int a,b,flag=0;
+			printf("请输入价格区间：");
+			fflush(stdin);
+			scanf("%d%d",&a,&b);
+			printf("\n");
+			while(head!=NULL)
+			{
+				if(head->price>=a&&head->price<=b)
+				{
+					printf(" 杂志名\t  价格\t  库存\t  杂志编号\n");
+					printf("_________________________________________ \n");
+					printf("   %s        | %f    |  %d      |    %s   \n"   ,head->na,head->price,head->count,head->num);
+					flag=1;
+				}
+				head=head->next;
+				
+			}
+			printf("----------------------------------------- \n");
+			if(flag==0)
+			{
+				printf("****************************************\n");
+				printf("########################################\n");
+				printf("书库里可能没有价格在%d~%d的杂志\n\n\n",a,b);
+				printf("########################################\n");
+				printf("****************************************\n");
+			}
+		};break;
+	case 3:
+		{
+			char j[5];
+			printf("请输入要查询的杂志号：");
+			fflush(stdin);
+			scanf("%s",j);
+			while(head!=NULL)
+			{
+				if(strcmp(head->num,j)==0)
+				{
+					printf("  杂志名\t  价格\t 库存\t  杂志编号\n");
+					printf("_________________________________________ \n");
+					printf("   %s        | %f    |  %d      |    %s   \n"   ,head->na,head->price,head->count,head->num);
+					flag=1;
+				}
+				head=head->next;
+			}
+		if(flag==0)
+			{
+				printf("****************************************\n");
+				printf("########################################\n");
+				printf("书库里可能没有该编号的杂志\n\n");
+				printf("########################################\n");
+				printf("****************************************\n");
+			}
+		};break;
+	case 4:
+		{
+			Art();
+			windows();
+
+		};
+	default :printf("选择有误，请重新输入选择");break;
+	}
+	return 0;
+}
+
+
+
+//通过
+void browse(struct magazine *head)//全局浏览杂志信息
+{
+	printf(" 杂志名\t  价格\t  库存\t  杂志编号\n");
+	while(head!=NULL)
+	{
+		if(head!=NULL)
+		{
+		printf("_________________________________________ \n");
+		printf(" %s     %.2f      %d      %s   \n"   ,head->na,head->price,head->count,head->num);
+		head=head->next;
+		}
+	}
+		printf("----------------------------------------- \n");
+}
+
+
+//通过
+struct magazine * Delete(struct magazine *head )//删除
+{
+	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	printf("请输入你要删除的杂志名：");
+	printf("/////////////////////////////////////////////////////\n");
+	char w[10];
+	struct magazine *p=head;
+	memset(w,0,10);
+	int flag=0;
+	fflush(stdin);
+	gets(w);
+	if(strcmp(head->na,w)==0)
+	{
+		head=head->next;
+		flag=1;
+		return head;
+	}
+	while(p!=NULL)
+	{
+		if(p->next!=NULL&&strcmp(p->next->na,w)==0)
+		{
+			p->next=p->next->next;
+			flag=1;
+		}
+		p=p->next;
+	}
+	if(flag==0)
+		printf("杂志库中无你要删除的杂志\n");
+	return head;
+}
+
+
+int correctmagazine(struct magazine *head)//修改
+{
+        printf("\t\t███████████████████████████\n");
+		printf("\t\t█ 1.修改杂志名称                                   █\n");
+		printf("\t\t█ 2.修改杂志价格                                   █\n");
+		printf("\t\t█ 3.修改杂志编号                                   █\n");
+		printf("\t\t█ 4.修改杂志数目									█\n");
+		printf("\t\t███████████████████████████\n");
+		printf("输入要修改的杂志名：");
+		char w[10];
+		memset(w,0,10);
+		fflush(stdin);
+		scanf("%s",w);
+		printf("请选择修改项目：");
+		int s,flag=0;
+		fflush(stdin);
+		scanf("%d",&s);
+		while(head!=NULL)
+		{
+			if(strcmp(head->na,w)==0)
+			{
+				flag=1;
+				switch(s)
+				{
+				case 1:
+					{
+						printf("输入你要改后的杂志名：");
+						char m[10];
+						memset(m,0,10);
+						fflush(stdin);
+						scanf("%s",m);
+						strcpy(head->na,m);
+					};break;
+				case 2:
+					{
+						printf("输入修改后的价格：");
+						float n;
+						fflush(stdin);
+						scanf("%f",&n);
+						head->price=n;
+					};break;
+				case 3:
+					{
+						printf("输入修改后的编号：");
+						char o[5];
+						memset(o,0,5);
+						fflush(stdin);
+						scanf("%s",o);
+						strcpy(head->num,o);
+					};break;
+				case 4:
+					{
+						printf("输入修改后的杂志数目：");
+						int p;
+						fflush(stdin);
+						scanf("%d",&p);
+						head->count=p;
+					};break;
+				default :
+					{
+					printf("选择有误，请重新选择");
+					};break;
+				}
+			}
+			head=head->next;
+		}
+		if(flag==0)
+		{
+			printf("杂志库中无此书\n");
+		}
+	return 0;
+}
+
+
+//通过
+struct magazine * addmagazine(struct magazine *head)//添加magazine
+{
+	printf("请输入你要添加杂志信息\n");
+	struct magazine *node;
+	node=(struct magazine*)malloc(sizeof(struct magazine));
+	memset(node,0,sizeof(struct magazine));
+	inlitmagazine(node);
+	while(1)
+	{
+		if(head->next==NULL)
+			break;
+		head=head->next;
+	}
+	head->next=node;
+	return head;
+
+}
+
+
+/************************************************************************************************************************************
+*********************************   客户信息管理   ***************************************************************************/
+
+void freeinguser(struct user *head)//free函数
+{
+	struct user * node=NULL;
+	while(head!=NULL)
+	{
+		node=head->next;
+		free(head);
+		head=node;
+	}
+}
+
+void inlituser(struct user *p)//输入
+{
+	printf("请输入客户姓名：");
+	fflush(stdin);
+	scanf("%s",p->name);
+	printf("请输入客户性别：");
+	fflush(stdin);
+	scanf("%s",p->gender);
+	printf("请输入客户号：");
+	fflush(stdin);
+	scanf("%s",p->mark);
+}
+
+
+struct user *linkuser(int n)//建立用户链表
+{
+	int i=1;
+	struct user *head=NULL;
+	struct user *node=NULL;
+	while(i<=n)
+	{
+		node=(struct user*)malloc(sizeof(struct user));
+		if(node==NULL)
+		{
+			return NULL;
+		}
+		memset(node,0,sizeof(struct user));
+		inlituser(node);
+		node->next=head;
+		head=node;
+		i++;
+	}
+	return head;
+}
+
+
+int Fwriteuser(struct user *head)//user存盘
+{
+	FILE *fp;	
+	if((fp=fopen("user.txt","w"))==NULL)
+	{
+		printf("open file faild");
+		return 1;
+	}
+	while(head!=NULL)
+	{
+		fwrite(head,sizeof(struct user),1,fp);
+		head=head->next;
+	}
+	printf("保存成功\n");
+	fclose(fp);
+	return 0;
+}
+
+
+struct user *Freaduser()//从文件中读取user信息
+{
+	
+ struct user *head=NULL;
+ struct user *node=NULL;
+ FILE *fp;
+ if((fp=fopen("user.txt","r"))==NULL)
+ {
+	printf("open file faild");
+	return NULL;
+ }
+ while(!feof(fp))
+ {
+	node=(struct user*)malloc(sizeof(struct user));
+	if(node==NULL)
+	{
+      return NULL;
+	  break;
+	}
+	memset(node,0,sizeof(struct user));
+	fread(node,1,sizeof(struct user),fp);
+	node->next=head;
+	head=node;
+ }
+ fclose(fp);
+ return head;
+}
+struct user * deleteuser(struct user *head)//删除user
+{
+	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	printf("请输入你要删除的客户姓名：");
+	printf("/////////////////////////////////////////////////////\n");
+	struct user *p=head;
+	char w[10];
+	memset(w,0,10);
+	int flag=0;
+	fflush(stdin);
+	gets(w);
+	if(strcmp(head->name,w)==0)
+	{
+		head=head->next;
+		flag=1;
+		return head;
+	}
+	while(p!=NULL)
+	{
+		if(p->next!=NULL&&strcmp(p->next->name,w)==0)
+		{
+			p->next=p->next->next;
+			flag=1;
+		}
+		p=p->next;
+	}
+	if(flag==0)
+	{
+		printf("用户组中无此人\n");
+		return NULL;
+	}
+	return head;
+}
+
+
+void lookuser(struct user *node)		//查询user
+{
+	int flag=0;
+        printf("\t\t███████████████████████████\n");
+		printf("\t\t█ 1.按客户姓名查询                                 █\n");
+		printf("\t\t█ 2.按客户号查询                                   █\n");
+		printf("\t\t█ 3.返回上一层                                     █\n");
+		printf("\t\t███████████████████████████\n");
+		printf("请选择修改方式：");
+		int n;
+		scanf("%d",&n);
+		char w[10];
+		memset(w,0,10);
+		switch(n)
+		{
+		case 1:
+			{
+				printf("输入要查询的用户姓名：");
+				fflush(stdin);
+				scanf("%s",w);
+				while(node!=NULL)
+				{
+					if(strcmp(node->name,w)==0)
+					{
+				      flag=1;
+					  printf("\t姓名\t\t性别\t\t客户号\n");
+					  printf("____________________________________ \n");
+					  printf("   %s        |   %s  |      %s			 \n",node->name,node->gender,node->mark);
+					  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+					}
+					node=node->next;
+				}
+
+			};break;
+		case 2:
+			{
+				printf("输入你要查询的客户号：");
+				fflush(stdin);
+				scanf("%s",w);
+				while(node!=NULL)
+				{
+				if(strcmp(node->mark,w)==0)
+				{
+					flag=1;
+					printf("\t姓名\t\t性别\t\t客户号\n");
+				    printf("____________________________________ \n");
+					printf("   %s        |   %s  |     %s			 \n",node->name,node->gender,node->mark);
+					printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+				}
+				node=node->next;
+				}
+			};break;
+		default :printf("选择有误,重新选择\n");break;
+		}
+		if(flag==0)
+			printf("客户中没有你要查找的人\n");
+}
+int correctuser(struct user *node)//修改用户信息
+{
+        printf("\t\t███████████████████████████\n");
+		printf("\t\t█ 1.修改客户姓名                                   █\n");
+		printf("\t\t█ 2.修改性别                                       █\n");
+		printf("\t\t█ 3.修改客户号                                     █\n");
+		printf("\t\t█				                                    █\n");
+		printf("\t\t███████████████████████████\n");
+		printf("请选择修改方式：");
+		int s,flag=0;
+		fflush(stdin);
+		scanf("%d",&s);
+		printf("输入要修改的用户姓名：");
+		char w[10];
+		memset(w,0,10);
+		fflush(stdin);
+		scanf("%s",w);
+		while(node!=NULL)
+		{
+			if(strcmp(node->name,w)==0)
+			{
+				flag=1;
+				switch(s)
+				{
+				case 1:
+					{
+						printf("输入修改后的用户姓名：");
+						char a[10];
+						memset(a,0,10);
+						fflush(stdin);
+						scanf("%s",a);
+						strcpy(node->name,a);
+					};break;
+				case 2:
+					{
+						printf("是否修改客户性别Y/N/n");
+						char t;
+						fflush(stdin);
+						scanf("%c",&t);
+						char f[5]="男",m[5]="女";
+						if(t=='Y')
+						{
+							if(strcmp(node->gender,f)==0)
+								strcpy(node->gender,m);
+							if(strcmp(node->gender,m)==0)
+								strcpy(node->gender,f);
+						}
+					};break;
+				case 3:
+					{
+						printf("输入修改后的客户号");
+						char bu[5];
+						memset(bu,0,5);
+						fflush(stdin);
+						scanf("%s",bu);
+						strcpy(node->mark,bu);
+						
+					};break;
+				default :
+
+						printf("选择有误\n");
+						break;
+
+				}
+
+			}
+			node=node->next; 
+		}
+		if(flag==0)
+			printf("没有你要修改的客户资料\n");
+	return 0;
+}
+
+
+int adduser(struct user * head)//添加user
+{
+	printf("请输入你要添加的用户信息\n");
+	struct user * node;
+	node=(struct user*)malloc(sizeof(struct user));
+	memset(node,0,sizeof(struct user));
+	inlituser(node);
+	while(1)
+	{
+		if(head->next==NULL)
+			break;
+		head=head->next;
+	}
+	head->next=node;
+	return 0;
+}
+
+
+/*##########################################################################################################################################
+								杂志订阅
+  ###################################################################################################################################*/
+void freeinggoods(struct goods *head)//free函数
+{
+	struct goods * node=NULL;
+	while(head!=NULL)
+	{
+		node=head->next;
+		free(head);
+		head=node;
+	}
+}
+
+void inlitgoods(struct goods *node)
+{
+	printf("请输入要添加的杂志订购客户名：");
+	fflush(stdin);
+	scanf("%s",node->mark);
+	printf("请输入客户订购的杂志号：");
+	fflush(stdin);
+	memset(node->num,0,5);
+	scanf("%s",node->num);
+	printf("请输入客户订购的杂志数量:");
+	scanf("%d",&node->book);
+}
+
+struct goods*linkgoods(int n)//建立订购链表
+{
+		int i=1;
+	struct goods *head=NULL;
+	struct goods *node=NULL;
+	while(i<=n)
+	{
+		node=(struct goods*)malloc(sizeof(struct goods));
+		if(node==NULL)
+		{
+			return NULL;
+		}
+		memset(node,0,sizeof(struct goods));
+		inlitgoods(node);
+		node->next=head;
+		head=node;
+		i++;
+	}
+	return head;
+}
+
+int Fwritegoods(struct goods *head)//user存盘
+{
+	FILE *fp;	
+	if((fp=fopen("goods.txt","w"))==NULL)
+	{
+		printf("open file faild");
+		return 1;
+	}
+	while(head!=NULL)
+	{
+		fwrite(head,sizeof(struct goods),1,fp);
+		head=head->next;
+	}
+	printf("保存成功\n");
+	fclose(fp);
+	return 0;
+}
+
+struct goods *Freadgoods()//从文件中读取订购信息
+{
+    struct goods *head=NULL;
+	struct goods *node=NULL;
+	FILE *fp;
+	fp=fopen("goods.txt","r");
+	if(fp==NULL)
+	{
+		printf("open file faild");
+		return NULL;
+	}
+	while(!feof(fp))
+	{
+		node=(struct goods*)malloc(sizeof(struct goods));
+		if(node==NULL)
+		{
+			printf("malloc faild");
+			return NULL;
+		}
+		memset(node,0,sizeof(struct goods));
+		fread(node,sizeof(struct goods),1,fp);
+		node->next=head;
+		head=node;
+	}
+	fclose(fp);
+	return head;
+}
+
+int addgoods(struct goods * node)
+{
+	struct goods * head=NULL;
+	head=(struct goods *)malloc(sizeof(struct goods));
+	memset(head,0,sizeof(struct goods));
+	inlitgoods(head);
+	while(1)
+	{
+		if(node->next==NULL)
+			break;
+		node=node->next;
+	}
+	node->next=head;
+	return 0;
+}
+
+int correctgoods(struct goods *node)//修改订购信息
+{
+    printf("\t\t███████████████████████████\n");
+	printf("\t\t█ 1.修改客户号                                     █\n");
+	printf("\t\t█ 2.修改订购杂志号                                 █\n");
+	printf("\t\t█ 3.修改订购数量                                   █\n");
+	printf("\t\t███████████████████████████\n");
+	printf("请选择修改方式：");
+	int s,flag=0;
+	scanf("%d",&s);
+	printf("输入要修改的客户号：");
+	char w[5];
+	memset(w,0,5);
+	fflush(stdin);
+	scanf("%s",w);
+	while(node!=NULL)
+	{
+		if(strcmp(node->mark,w)==0)
+		{
+			flag=1;
+			switch(s)
+			{
+			case 1:
+				{
+					printf("输入修改后的客户号：");
+					char a[5];
+					memset(a,0,5);
+					fflush(stdin);
+					scanf("%s",a);
+					strcpy(node->mark,a);
+				};break;
+			case 2:
+				{
+					printf("输入你要修改为的杂志号：");
+					char t[5];
+					memset(t,0,5);
+					fflush(stdin);
+					scanf("%s",t);
+					strcpy(node->num,t);
+				};break;
+			case 3:
+				{
+					printf("输入你要修改为的订购数目：");
+					int z;
+					fflush(stdin);
+					scanf("%d",&z);
+					
+				};break;
+			default :
+					printf("选择有误\n");
+					break;
+
+			}
+
+		}
+		node=node->next; 
+	}
+	if(flag==0)
+		printf("没有你要修改的杂志订购资料\n");
+	return 0;
+}
+
+/*￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥
+									统计
+  ￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥*/
+
+void summary()
+{
+	struct magazine *zero;
+	struct goods *two;
+	zero=Freadmagazine();
+	int sum=0;
+	while(zero!=NULL)
+	{
+		two=Freadgoods();
+		while(two!=NULL)
+		{
+			if(strcmp(zero->num,two->num)==0)
+				sum+=two->book;
+			two=two->next;	
+		}
+		zero->sum=sum;
+		zero=zero->next;
+	}
+
+	while(zero!=NULL)
+	{
+		if(zero!=NULL)
+		{
+			printf("%s\n",zero->na);
+			printf("%d\n",sum);
+		    zero=zero->next;
+		}
+	}
+}
+
+//*************************************************管理员***************
+void adminseen()//管理员界面
+{
+	printf("\t\t★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+	printf("\t\t★  1.管理杂志信息                                            ★\n");
+	printf("\t\t★  2.管理客户信息                                            ★\n");
+	printf("\t\t★  3.管理订单信息                                            ★\n");
+	printf("\t\t★  4.查看统计信息                                            ★\n");
+	printf("\t\t★  5.返回主界面                                              ★\n");
+	printf("\t\t★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+}
+void adminuser()//管理员用户管理器
+{
+	struct user *one;
+	one=Freaduser();
+	printf("\t\t███████████████████████████\n");
+	printf("\t\t█ 1.添加客户                                       █\n");
+	printf("\t\t█ 2.查询客户信息                                   █\n");
+	printf("\t\t█ 3.修改客户信息                                   █\n");
+	printf("\t\t█ 4.删除客户信息                                   █\n");
+	printf("\t\t█ 5.返回主界面                                     █\n");
+	printf("\t\t███████████████████████████\n");
+	printf("请选择功能：");
+	int n;
+	fflush(stdin);
+	scanf("%d",&n);
+	system("cls");//清屏函数 
+	switch(n)
+	{
+		case 1:
+			{
+				while(1)
+				{
+					adduser(one);
+					printf("是否保存Y/N:");
+					char fou,fiv;
+					fflush(stdin);
+					scanf("%c",&fou);
+					if(fou=='Y')
+						Fwriteuser(one);
+					printf("是否继续添加Y/N:");
+					fflush(stdin);
+					scanf("%c",&fiv);
+					if(fiv=='Y')
+					{
+						system("cls");//清屏函数
+						continue;
+					}
+					else
+						break;
+
+				}
+			};break;
+		case 2:
+			{
+				int si;
+				while(1)
+				{
+					lookuser(one);
+					printf("是否继续查询用户信息Y/N:");
+					fflush(stdin);
+					if((si=getchar())=='Y')
+					{
+						system("cls");//清屏函数
+						continue;
+					}
+					else
+						break;
+					
+				}
+			};break;
+		case 3:
+			{
+
+				char se,eig;
+				while(1)
+				{
+					correctuser(one);
+					printf("是否保存修改Y/N:");
+					fflush(stdin);
+					if((se=getchar())=='Y')
+						Fwriteuser(one);
+					printf("是否继续修改Y/N:");
+					if((eig=getchar())=='Y')
+					{
+						system("cls");//清屏函数
+						continue;
+					}
+					else 
+						break;
+				}
+			};break;
+		case 4:{
+			char ni,te;
+			while(1)
+			{ 	
+			    	deleteuser(one);
+					printf("是否保存修改Y/N:");
+					fflush(stdin);
+					if((ni=getchar())=='Y')
+						Fwriteuser(one);
+					printf("是否继续修改Y/N:");
+					fflush(stdin);
+					if((te=getchar())=='Y')
+					{
+						system("cls");//清屏函数
+						continue;
+					}
+					else 
+						break;
+				
+			}
+			   };break;
+		default:{
+			system("cls");//清屏函数
+			printf("选择有误，请重新选择\n");
+			adminuser();
+			   };break;
+		case 5:
+			{
+				system("cls");//清屏函数
+				Art();
+				windows();
+			};break;
+	}
+	freeinguser(one);
+}
+void adminmagazine()//管理员杂志管理器
+{
+	struct magazine * zero;
+	zero=Freadmagazine();
+	printf("\t\t███████████████████████████\n");
+	printf("\t\t█ 1.全局浏览杂志库                                 █\n");
+	printf("\t\t█ 2.输入查询                                       █\n");
+	printf("\t\t█ 3.添加杂志                                       █\n");
+	printf("\t\t█ 4.修改杂志信息                                   █\n");
+	printf("\t\t█ 5.删除杂志                                       █\n");
+	printf("\t\t█ 6.返回主界面                                     █\n");
+	printf("\t\t███████████████████████████\n");
+	printf("请选择功能：");
+	int n;
+	scanf("%d",&n);
+	system("cls");//清屏函数 
+	switch(n)
+	{
+	case 1:
+		{
+			browse(zero);
+		};break;
+	case 2:
+		{
+			while(1)
+			{
+				scanmagazine(zero);
+				printf("是否继续查找Y/N\n");
+				char q;
+				fflush(stdin);
+				scanf("%c",&q);
+					if(q=='Y')
+					{
+						system("cls");//清屏函数 
+						continue;
+					}
+					else
+						break;
+			}
+		};break;
+	case 3:
+		{
+			while(1)
+			{
+				char ch,fir;
+				addmagazine(zero);
+				printf("是否保存Y/N\n");
+				fflush(stdin);
+				scanf("%c",&ch);
+				if(ch=='Y')
+					Fwritemagazine(zero);
+				printf("是否继续添加杂志Y/N\n");
+				fflush(stdin);
+				scanf("%c",&fir);
+				if(fir=='Y')
+				{system("cls");//清屏函数
+					continue;
+				}
+				else
+					break;
+			}
+		};break;
+	case 4:
+		{
+			while(1)
+			{
+			char sec,thir;
+			correctmagazine(zero);
+			printf("是否保存修改Y/N\n");
+			fflush(stdin);
+			scanf("%c",&sec);
+			if(sec=='Y')
+				Fwritemagazine(zero);
+				printf("是否继续修改杂志信息Y/N\n");
+				fflush(stdin);
+				scanf("%c",&thir);
+				if(thir=='Y')
+				{
+					system("cls");//清屏函数
+					continue;
+				}
+				else
+					break;
+			}
+		};break;
+	case 5:
+		{
+			while(1)
+			{
+			char thi,fir;
+			Delete(zero);
+			printf("是否保存Y/N\n");
+			fflush(stdin);
+			scanf("%c",&thi);
+			if(thi=='Y')
+				Fwritemagazine(zero);
+			printf("是否继续删除杂志Y/N\n");
+			fflush(stdin);
+			scanf("%c",&fir);
+			if(fir=='Y')
+			{
+				system("cls");//清屏函数
+				continue;
+			}
+			else
+					break;
+			}
+		};break;
+	case 6:
+		{
+			system("cls");//清屏函数
+			Art();
+			windows();
+		};break;
+	default:{
+		printf("**********选择有误，请重新选择*************\n");
+		adminmagazine();
+			};break;
+	
+	}
+	freeingmagazine(zero);
+}
+void goodslook()
+{
+	printf("\t\t███████████████████████████\n");
+	printf("\t\t█ 1.添加订购信息                                   █\n");
+	printf("\t\t█ 2.修改订购信息                                   █\n");
+	printf("\t\t█ 3.返回主界面                                     █\n");
+	printf("\t\t███████████████████████████\n");
+	printf("***请选择功能***\n");
+
+}
+void admingoods()
+{
+	struct goods *two;
+	two=Freadgoods();
+	int on;
+	fflush(stdin);
+	scanf("%d",&on);
+	switch(on)
+	{
+	case 1:
+		{
+			char tw,th;
+			while(1)
+			{
+				addgoods(two);
+				printf("是否保存Y/N:");
+				fflush(stdin);
+				if((tw=getchar())=='Y')
+					Fwritegoods(two);
+				printf("是否继续添加Y/N:");
+				fflush(stdin);
+				if((th=getchar())=='Y')
+				{
+					system("cls");//清屏函数
+					continue;
+				}
+				else 
+					break;
+			}
+		};break;
+	case 2:
+		{
+			char m,n;
+			while(1)
+			{
+				correctgoods(two);
+				printf("是否保存Y/N:");
+				fflush(stdin);
+				if((m=getchar())=='Y')
+					Fwritegoods(two);
+				printf("是否继续修改Y/N:");
+				fflush(stdin);
+				if((n=getchar())=='Y')
+				{
+					system("cls");//清屏函数
+					continue;
+				}
+				else 
+					break;
+			}
+		};break;
+	case 3:
+		{
+			system("cls");//清屏函数
+			Art();
+			windows();
+		};break;
+	}
+
+	freeinggoods(two);
+}
+void userfundation()
+{
+	printf("###########请选择###############\n");
+	int fir;
+	scanf("%d",&fir);
+	switch(fir)
+	{
+	case 1:
+		{
+			system("cls");//清屏函数
+			adminmagazine();
+		};break;
+	case 2:
+		{
+			system("cls");//清屏函数
+			
+			adminuser();
+		};break;
+	case 3:
+		{
+		   system("cls");//清屏函数
+			goodslook();
+			admingoods();
+		};break;
+	case 4:
+		{
+			summary();
+		};break;
+	case 5:
+		{
+			 system("cls");//清屏函数
+			 Art();
+			 windows();
+		};break;
+	default:
+		{
+			system("cls");//清屏函数
+			printf("选择有误，请重新选择\n");
+			adminseen();
+			userfundation();
+		};break;
+	}
+
+}
+void signin()//登录界面
+{
+	   char a[6]="admin",b[7]="123456",c[6],d[7];
+       memset(c,0,6);memset(d,0,7);
+       printf("\t\t★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+	   printf("\t\t******************请按提示登录**********************************\n");
+		printf("\t\t 登录名:");
+		scanf("%s",c);
+		printf("\t\t \n");
+		printf("\t\t 密码:");
+		scanf("%s",d);
+		printf("\t\t\n");
+
+		if(strcmp(a,c)==0&&strcmp(b,d)==0)
+		{
+			printf("正在转向管理员界面请稍等~~~~");
+			Sleep(500);
+			system("cls");//清屏函数 
+			adminseen();
+		}
+		else
+		{
+			system("cls");//清屏函数 
+
+			printf("登录错误请重新登录\n");
+			signin();
+		}
+}
+//********************************************************普通用户*************************************************
+void commonuser()//普通用户功能
+{
+	struct magazine * zero;
+	zero=Freadmagazine();
+	printf("\t\t███████████████████████████\n");
+	printf("\t\t█ 1.全局浏览杂志库                                 █\n");
+	printf("\t\t█ 2.输入查询                                       █\n");
+	printf("\t\t█ 3.返回主界面                                     █\n");
+	printf("\t\t███████████████████████████\n");
+	int n;
+	scanf("%d",&n);
+	system("cls");//清屏函数 
+	switch(n)
+	{
+	case 1:
+		{
+			browse(zero);
+		};break;
+	case 2:
+		{
+			while(1)
+			{
+				scanmagazine(zero);
+				printf("是否继续查找Y/N\n");
+				char q;
+				fflush(stdin);
+				scanf("%c",&q);
+					if(q=='Y')
+					{
+						system("cls");//清屏函数 
+						continue;
+					}
+					else
+						break;
+			}
+		};break;
+	case 3:
+		{
+		Art();
+		windows();
+		};break;
+	default :{
+		system("cls");//清屏函数
+		printf("选择有误,重新选择\n");
+		
+		commonuser();
+			 };
+		break;
+	}
+	
+}
+void windows()
+{
+	char ch;
+	ch=getchar();
+	printf("正在转向用户界面~~~~");
+	Sleep(500);
+    system("cls");//清屏函数  
+	if(ch=='A')
+	{
+		signin();
+		userfundation();
+	}
+	else if(ch=='B')
+	{
+		commonuser();
+	}
+	else
+	{
+		printf("选择有误，请重新选择\n");
+		Art();
+		windows();
+	}
+}
+
+
+void main()
+{	
+    Art();
+    windows();
+
+}
